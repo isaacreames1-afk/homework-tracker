@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'home_screen.dart';
+import 'main_navigation.dart';
 
 void main() {
   runApp(const HomeworkTrackerApp());
@@ -43,7 +44,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (context) => const HomeScreen()),
+          builder: (context) => const MainNavigationScreen()),
       );
     });
   }
