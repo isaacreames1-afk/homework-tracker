@@ -1,5 +1,5 @@
-
 import 'package:flutter/material.dart';
+import '../presenters/assignment_presenter.dart';
 
 class AssignmentListScreen extends StatefulWidget {
   const AssignmentListScreen({super.key});
@@ -9,7 +9,7 @@ class AssignmentListScreen extends StatefulWidget {
 }
 
 class _AssignmentListScreenState extends State<AssignmentListScreen> {
-  final List<Map<String, dynamic>> _assignments = [];
+  final AssignmentPresenter _presenter = AssignmentPresenter();
 
   // Keeps track of which assignments are selected
   final Set<int> _selectedAssignments = {};
@@ -43,12 +43,12 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
               onPressed: () {
                 if (newAssignmentTitle.trim().isNotEmpty) {
                   setState(() {
-                    _assignments.add({
-                      'title': newAssignmentTitle.trim(),
-                      'completed': false,
-                    });
+                    _presenter.addAssignment(
+                      newAssignmentTitle.trim(),
+                    );
                   });
                 }
+
                 Navigator.pop(context);
               },
               child: const Text('Add'),
@@ -59,41 +59,7 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
     );
   }
 
-  void _toggleCompleted(int index, bool? value) {
-    setState(() {
-      _assignments[index]['completed'] = value ?? false;
-    });
-  }
-
-  // Select or unselect an assignment
-  void _toggleSelection(int index) {
-    setState(() {
-      if (_selectedAssignments.contains(index)) {
-        _selectedAssignments.remove(index);
-      } else {
-        _selectedAssignments.add(index);
-      }
-    });
-  }
-
-  // Delete all selected assignments
-  void _deleteSelectedAssignments() {
-    setState(() {
-      // Delete from highest index to lowest index
-      // so the indexes do not shift incorrectly
-      final sortedIndexes = _selectedAssignments.toList()
-        ..sort((a, b) => b.compareTo(a));
-
-      for (final index in sortedIndexes) {
-        _assignments.removeAt(index);
-      }
-
-      _selectedAssignments.clear();
-      _isSelecting = false;
-    });
-  }
-
-  // Enter selection mode
+  // Start selection mode
   void _startSelecting() {
     setState(() {
       _isSelecting = true;
@@ -108,64 +74,104 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
     });
   }
 
+  // Select or deselect an assignment
+  void _toggleSelection(int index) {
+    setState(() {
+      if (_selectedAssignments.contains(index)) {
+        _selectedAssignments.remove(index);
+      } else {
+        _selectedAssignments.add(index);
+      }
+    });
+  }
+
+  // Delete all selected assignments
+  void _deleteSelectedAssignments() {
+    if (_selectedAssignments.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      // Delete from highest index to lowest index
+      // so indexes do not shift incorrectly.
+      final sortedIndexes = _selectedAssignments.toList()
+        ..sort((a, b) => b.compareTo(a));
+
+      for (final index in sortedIndexes) {
+        _presenter.assignments.removeAt(index);
+      }
+
+      _selectedAssignments.clear();
+      _isSelecting = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final assignments = _presenter.assignments;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
           _isSelecting
-              ? '${_selectedAssignments.length} selected'
+              ? '${_selectedAssignments.length} Selected'
               : 'Assignments',
         ),
-
         actions: [
-          if (_isSelecting)
-            TextButton(
+          if (_isSelecting) ...[
+            // Cancel selection
+            IconButton(
+              onPressed: _cancelSelecting,
+              icon: const Icon(Icons.close),
+              tooltip: 'Cancel',
+            ),
+
+            // Delete selected assignments
+            IconButton(
               onPressed: _selectedAssignments.isEmpty
                   ? null
                   : _deleteSelectedAssignments,
-              child: const Text(
-                'Delete',
-                style: TextStyle(color: Colors.red),
-              ),
-            )
-          else
-            TextButton(
-              onPressed: _startSelecting,
-              child: const Text('Delete'),
+              icon: const Icon(Icons.delete),
+              tooltip: 'Delete',
             ),
-
-          if (_isSelecting)
+          ] else
+            // Enter selection mode
             IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: _cancelSelecting,
+              onPressed: _startSelecting,
+              icon: const Icon(Icons.checklist),
+              tooltip: 'Select assignments',
             ),
         ],
       ),
 
       body: ListView.builder(
-        itemCount: _assignments.length,
+        itemCount: assignments.length,
         itemBuilder: (context, index) {
-          final isSelected = _selectedAssignments.contains(index);
+          final assignment = assignments[index];
+
+          if (_isSelecting) {
+            return CheckboxListTile(
+              title: Text(assignment.title),
+
+              // This checkbox is for selecting assignments to delete
+              value: _selectedAssignments.contains(index),
+
+              onChanged: (value) {
+                _toggleSelection(index);
+              },
+            );
+          }
 
           return CheckboxListTile(
-            title: Text(_assignments[index]['title']),
-            value: _isSelecting
-                ? isSelected
-                : _assignments[index]['completed'],
+            title: Text(assignment.title),
+            value: assignment.isCompleted,
 
-            // In selection mode, checkbox selects assignments
+            // Normal mode: check assignment as completed
             onChanged: (value) {
-              if (_isSelecting) {
-                _toggleSelection(index);
-              } else {
-                _toggleCompleted(index, value);
-              }
+              setState(() {
+                _presenter.toggleCompleted(index);
+              });
             },
-
-            // Highlight selected assignments
-            selected: _isSelecting && isSelected,
-            selectedTileColor: Colors.blue.withOpacity(0.1),
           );
         },
       ),
@@ -179,3 +185,4 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
     );
   }
 }
+
