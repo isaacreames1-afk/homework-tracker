@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import '../presenters/assignment_presenter.dart';
+import 'due_date_picker.dart';
 
-class AssignmentListScreen extends StatefulWidget {
-  const AssignmentListScreen({super.key});
+class AssignmentListScreen extends StatefulWidget { const AssignmentListScreen({super.key});
 
   @override
   State<AssignmentListScreen> createState() => _AssignmentListScreenState();
 }
 
 class _AssignmentListScreenState extends State<AssignmentListScreen> {
-  final AssignmentPresenter _presenter = AssignmentPresenter();
+  final AssignmentPresenter _presenter =AssignmentPresenter();
 
   // Keeps track of which assignments are selected
   final Set<int> _selectedAssignments = {};
@@ -17,34 +17,85 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
   // Tracks whether selection mode is active
   bool _isSelecting = false;
 
+  // Stores the due date for a new assignment
+  DateTime? _dueDate;
+
+
   void _showAddAssignmentDialog() {
     String newAssignmentTitle = '';
+
+    // Reset the date when opening the dialog
+    _dueDate = null;
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: const Text('Add Assignment'),
-          content: TextField(
-            autofocus: true,
-            decoration: const InputDecoration(
-              hintText: 'Enter assignment title',
-            ),
-            onChanged: (value) {
-              newAssignmentTitle = value;
-            },
+
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+
+              // Assignment title
+              TextField(
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: 'Enter assignment title',
+                ),
+                onChanged: (value) {
+                  newAssignmentTitle = value;
+                },
+              ),
+
+              const SizedBox(height: 15),
+
+              // Date picker button
+              OutlinedButton(
+                onPressed: () async {
+                  final pickedDate =
+                      await selectDueDate(context);
+
+                  if (pickedDate != null) {
+                    setState(() {
+                      _dueDate = pickedDate;
+                    });
+                  }
+                },
+
+                child: Text(
+                  _dueDate == null
+                      ? 'Select Due Date'
+                      : 'Due: '
+                          '${_dueDate!.day}/'
+                          '${_dueDate!.month}/'
+                          '${_dueDate!.year}',
+                ),
+              ),
+            ],
           ),
+
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
+            // Cancel button
             TextButton(
               onPressed: () {
-                if (newAssignmentTitle.trim().isNotEmpty) {
+                Navigator.pop(context);
+              },
+              child: const Text('Cancel'),
+            ),
+
+            // Add button
+            TextButton(
+              onPressed: () {
+
+                if (newAssignmentTitle
+                    .trim()
+                    .isNotEmpty) {
+
                   setState(() {
                     _presenter.addAssignment(
                       newAssignmentTitle.trim(),
+                      _dueDate,
                     );
                   });
                 }
@@ -59,14 +110,12 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
     );
   }
 
-  // Start selection mode
   void _startSelecting() {
     setState(() {
       _isSelecting = true;
     });
   }
 
-  // Cancel selection mode
   void _cancelSelecting() {
     setState(() {
       _isSelecting = false;
@@ -74,7 +123,6 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
     });
   }
 
-  // Select or deselect an assignment
   void _toggleSelection(int index) {
     setState(() {
       if (_selectedAssignments.contains(index)) {
@@ -85,17 +133,17 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
     });
   }
 
-  // Delete all selected assignments
   void _deleteSelectedAssignments() {
     if (_selectedAssignments.isEmpty) {
       return;
     }
 
     setState(() {
+
       // Delete from highest index to lowest index
-      // so indexes do not shift incorrectly.
-      final sortedIndexes = _selectedAssignments.toList()
-        ..sort((a, b) => b.compareTo(a));
+      final sortedIndexes =
+          _selectedAssignments.toList()
+            ..sort((a, b) => b.compareTo(a));
 
       for (final index in sortedIndexes) {
         _presenter.assignments.removeAt(index);
@@ -108,17 +156,22 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
 
   @override
   Widget build(BuildContext context) {
+
     final assignments = _presenter.assignments;
 
     return Scaffold(
+
       appBar: AppBar(
         title: Text(
           _isSelecting
               ? '${_selectedAssignments.length} Selected'
               : 'Assignments',
         ),
+
         actions: [
+
           if (_isSelecting) ...[
+
             // Cancel selection
             IconButton(
               onPressed: _cancelSelecting,
@@ -128,13 +181,16 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
 
             // Delete selected assignments
             IconButton(
-              onPressed: _selectedAssignments.isEmpty
-                  ? null
-                  : _deleteSelectedAssignments,
+              onPressed:
+                  _selectedAssignments.isEmpty
+                      ? null
+                      : _deleteSelectedAssignments,
               icon: const Icon(Icons.delete),
               tooltip: 'Delete',
             ),
+
           ] else
+
             // Enter selection mode
             IconButton(
               onPressed: _startSelecting,
@@ -146,14 +202,17 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
 
       body: ListView.builder(
         itemCount: assignments.length,
+
         itemBuilder: (context, index) {
+
           final assignment = assignments[index];
 
+          // Selection mode
           if (_isSelecting) {
+
             return CheckboxListTile(
               title: Text(assignment.title),
 
-              // This checkbox is for selecting assignments to delete
               value: _selectedAssignments.contains(index),
 
               onChanged: (value) {
@@ -162,11 +221,23 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
             );
           }
 
+          // Normal mode
           return CheckboxListTile(
             title: Text(assignment.title),
+
+            // Show due date underneath assignment
+            subtitle: assignment.dueDate != null
+                ? Text(
+                    'Due: '
+                    '${assignment.dueDate!.day}/'
+                    '${assignment.dueDate!.month}/'
+                    '${assignment.dueDate!.year}',
+                  )
+                : const Text('No due date'),
+
             value: assignment.isCompleted,
 
-            // Normal mode: check assignment as completed
+            // Mark assignment as completed
             onChanged: (value) {
               setState(() {
                 _presenter.toggleCompleted(index);
@@ -185,4 +256,3 @@ class _AssignmentListScreenState extends State<AssignmentListScreen> {
     );
   }
 }
-

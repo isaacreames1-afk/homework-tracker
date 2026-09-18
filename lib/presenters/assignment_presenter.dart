@@ -5,8 +5,8 @@ class AssignmentPresenter {
 
   List<Assignment> get assignments => _assignments;
 
-  void addAssignment(String title) {
-    _assignments.add(Assignment(title: title));
+  void addAssignment(String title, DateTime? dueDate) {
+    _assignments.add(Assignment(title: title, dueDate: dueDate));
   }
 
   void toggleCompleted(int index) {
