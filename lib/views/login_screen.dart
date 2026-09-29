@@ -33,6 +33,64 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     }
   }
+  void _showForgotPasswordDialog() {
+  final emailController = TextEditingController();
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text('Forgot Password?'),
+        content: TextField(
+          controller: emailController,
+          keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(
+            labelText: 'Email',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final email = emailController.text.trim();
+
+              if (email.isEmpty) {
+                return;
+              }
+
+              final error =
+                  await _presenter.resetPassword(email);
+
+              if (!context.mounted) return;
+
+              Navigator.pop(context);
+
+              if (error != null) {
+                setState(() {
+                  _errorMessage = error;
+                });
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Password reset email sent!',
+                    ),
+                  ),
+                );
+              }
+            },
+            child: const Text('Send'),
+          ),
+        ],
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -60,6 +118,12 @@ class _LoginScreenState extends State<LoginScreen> {
             ElevatedButton(
               onPressed: _handleLogin,
               child: const Text('Login'),
+            ),
+            TextButton(
+              onPressed: () {
+                _showForgotPasswordDialog();
+              },
+              child: const Text('Forgot Password?'),
             ),
             TextButton(
               onPressed: () {

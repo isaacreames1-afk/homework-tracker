@@ -28,6 +28,15 @@ class AuthModel {
     return e.message ?? 'Sign up failed.';
   }
 }
+  Future<String?> resetPassword(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+      return null;
+    }
+    on FirebaseAuthException catch (e) {
+      return e.message ?? 'Could not send password reset email';
+    }
+  }
 
   Future<void> signOut() async {
     await _auth.signOut();
