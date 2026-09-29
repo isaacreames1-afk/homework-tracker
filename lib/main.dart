@@ -3,8 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'home_screen.dart';
 import 'views/main_navigation.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'views/login_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const HomeworkTrackerApp());
 }
 
@@ -29,6 +34,35 @@ class SplashScreen extends StatefulWidget {
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            backgroundColor: Colors.blue,
+            body: Center(
+              child: Text(
+                'Homework Tracker', 
+                style: TextStyle(
+                  fontSize: 24, 
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold
+                )
+              ),
+            ),
+          );
+        } 
+        if (snapshot.hasData) {
+          return const MainNavigationScreen();
+        } 
+          return const LoginScreen();
+        
+      },
+    );
+  }
 }
 
 class _SplashScreenState extends State<SplashScreen> {
