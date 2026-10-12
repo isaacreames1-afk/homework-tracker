@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../presenters/course_presenter.dart';
+import '../widgets/add_fab.dart';
 
 class CourseListScreen extends StatefulWidget {
   const CourseListScreen({super.key});
@@ -99,18 +100,18 @@ class _CourseListScreenState extends State<CourseListScreen> {
       ),
 
       body: _isLoading
-    ? const Center(
+        ? const Center(
         child: CircularProgressIndicator(),
       )
-    : Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              decoration: const InputDecoration(
-                labelText: 'Search courses',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
+        : Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: TextField(
+                decoration: const InputDecoration(
+                  labelText: 'Search courses',
+                  prefixIcon: Icon(Icons.search),
+                  border: OutlineInputBorder(),
               ),
               onChanged: (value) {
                 setState(() {
@@ -138,10 +139,8 @@ class _CourseListScreenState extends State<CourseListScreen> {
         ],
       ),
 
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddCourseDialog,
-        child: const Icon(Icons.add),
-      ),
+      
+      floatingActionButton: AddFAB(onPressed: _showAddCourseDialog),
     );
   }
 }
