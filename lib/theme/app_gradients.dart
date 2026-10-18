@@ -1,15 +1,12 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:homework_tracker/models/course_model.dart';
+import 'package:flutter/material.dart';
 
-void main() {
-    test('Course model stores name and optional description', () {
-        final course = Course(name: 'History', description: 'World Wars');
-        expect(course.name, 'History');
-        expect(course.description, 'World Wars');
-    });
-
-    test('Course model handles null description', () {
-        final course = Course(name: 'Art');
-        expect(course.description, isNull);
-    });
+class AppGradients {
+  static const LinearGradient mitsuri = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [
+      Color(0xFFB8E6C1), // Light Mitsuri green
+      Color(0xFFF6C1D0), // Light Mitsuri pink
+    ],
+  );
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import '../presenters/assignment_presenter.dart';
+import '../theme/app_gradients.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -36,7 +37,13 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : Padding(
+          :Container(
+              width: double.infinity,
+              height: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: AppGradients.mitsuri,
+              ),
+            child: Padding(
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 children: [
@@ -79,6 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
+      ),
     );
   }
 }

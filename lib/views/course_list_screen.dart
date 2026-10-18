@@ -1,6 +1,8 @@
+
 import 'package:flutter/material.dart';
 import '../presenters/course_presenter.dart';
 import '../widgets/add_fab.dart';
+import '../theme/app_gradients.dart';
 
 class CourseListScreen extends StatefulWidget {
   const CourseListScreen({super.key});
@@ -11,6 +13,7 @@ class CourseListScreen extends StatefulWidget {
 
 class _CourseListScreenState extends State<CourseListScreen> {
   final CoursePresenter presenter = CoursePresenter();
+
   bool _isLoading = true;
   String _searchQuery = '';
 
@@ -21,13 +24,27 @@ class _CourseListScreenState extends State<CourseListScreen> {
   }
 
   Future<void> _loadCourses() async {
-    await presenter.loadCourses();
+    try {
+      await presenter.loadCourses();
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() {
-      _isLoading = false;
-    });
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to load courses: $e'),
+        ),
+      );
+    }
   }
 
   void _showAddCourseDialog() {
@@ -36,10 +53,9 @@ class _CourseListScreenState extends State<CourseListScreen> {
 
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Add Course'),
-
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -49,7 +65,6 @@ class _CourseListScreenState extends State<CourseListScreen> {
                 ),
                 onChanged: (value) => name = value,
               ),
-
               TextField(
                 decoration: const InputDecoration(
                   labelText: 'Description (optional)',
@@ -58,26 +73,45 @@ class _CourseListScreenState extends State<CourseListScreen> {
               ),
             ],
           ),
-
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Cancel'),
             ),
-
             TextButton(
               onPressed: () async {
-                if (name.trim().isNotEmpty) {
+                if (name.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter a course name.'),
+                    ),
+                  );
+                  return;
+                }
+
+                try {
                   await presenter.addCourse(
                     name.trim(),
-                    description: description,
+                    description: description?.trim().isEmpty == true
+                        ? null
+                        : description?.trim(),
                   );
 
                   if (!mounted) return;
 
                   setState(() {});
 
-                  Navigator.pop(context);
+                  if (dialogContext.mounted) {
+                    Navigator.pop(dialogContext);
+                  }
+                } catch (e) {
+                  if (!mounted) return;
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to add course: $e'),
+                    ),
+                  );
                 }
               },
               child: const Text('Add'),
@@ -99,48 +133,77 @@ class _CourseListScreenState extends State<CourseListScreen> {
         title: const Text('Courses'),
       ),
 
-      body: _isLoading
-        ? const Center(
-        child: CircularProgressIndicator(),
-      )
-        : Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: TextField(
-                decoration: const InputDecoration(
-                  labelText: 'Search courses',
-                  prefixIcon: Icon(Icons.search),
-                  border: OutlineInputBorder(),
+      // Mitsuri green-to-pink gradient background.
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppGradients.mitsuri,
+        ),
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(),
+              )
+            : Column(
+                children: [
+                  // Search bar.
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: TextField(
+                      decoration: const InputDecoration(
+                        labelText: 'Search courses',
+                        prefixIcon: Icon(Icons.search),
+                        border: OutlineInputBorder(),
+                        filled: true,
+                        fillColor: Colors.white70,
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value;
+                        });
+                      },
+                    ),
+                  ),
+
+                  // Course list.
+                  Expanded(
+                    child: courses.isEmpty
+                        ? const Center(
+                            child: Text('No courses found.'),
+                          )
+                        : ListView.builder(
+                            itemCount: courses.length,
+                            itemBuilder: (context, index) {
+                              final course = courses[index];
+
+                              return Card(
+                                color: Colors.white.withOpacity(0.65),
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                child: ListTile(
+                                  title: Text(
+                                    course.name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  subtitle: course.description != null &&
+                                          course.description!.isNotEmpty
+                                      ? Text(course.description!)
+                                      : null,
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
               ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
-            ),
-          ),
-
-          Expanded(
-            child: ListView.builder(
-              itemCount: courses.length,
-              itemBuilder: (context, index) {
-                final course = courses[index];
-
-                return ListTile(
-                  title: Text(course.name),
-                  subtitle: course.description != null
-                      ? Text(course.description!)
-                      : null,
-                );
-              },
-            ),
-          ),
-        ],
       ),
 
-      
-      floatingActionButton: AddFAB(onPressed: _showAddCourseDialog),
+      // Add course button.
+      floatingActionButton: AddFAB(
+        onPressed: _showAddCourseDialog,
+      ),
     );
   }
 }

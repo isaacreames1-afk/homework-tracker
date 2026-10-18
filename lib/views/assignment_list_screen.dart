@@ -1,11 +1,11 @@
 
 import 'package:flutter/material.dart';
-
 import '../models/assignment_model.dart';
 import '../presenters/assignment_presenter.dart';
 import '../presenters/course_presenter.dart';
 import '../widgets/add_fab.dart';
 import 'due_date_picker.dart';
+import '../theme/app_gradients.dart';
 
 class AssignmentListScreen extends StatefulWidget {
   const AssignmentListScreen({super.key});
@@ -372,156 +372,164 @@ class _AssignmentListScreenState
       ),
 
       
-body: _isLoading
-    ? const Center(
-        child: CircularProgressIndicator(),
-      )
-    : Column(
-        children: [
-          // Search bar.
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              decoration: const InputDecoration(
-                labelText: 'Search assignments',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
+
+body: Container(
+  decoration: const BoxDecoration(
+    gradient: AppGradients.mitsuri,
+  ),
+  child: _isLoading
+      ? const Center(
+          child: CircularProgressIndicator(),
+        )
+      : Column(
+          children: [
+            // Search bar.
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: TextField(
+                decoration: const InputDecoration(
+                  labelText: 'Search assignments',
+                  prefixIcon: Icon(Icons.search),
+                  border: OutlineInputBorder(),
+                  filled: true,
+                  fillColor: Colors.white70,
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
               ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
             ),
-          ),
 
-          // Assignment list.
-          Expanded(
-            child: displayedAssignments.isEmpty
-                ? const Center(
-                    child: Text('No assignments found.'),
-                  )
-                : ListView.builder(
-                    itemCount: displayedAssignments.length,
-                    itemBuilder: (context, index) {
-                      final assignment =
-                          displayedAssignments[index];
+            // Assignment list.
+            Expanded(
+              child: displayedAssignments.isEmpty
+                  ? const Center(
+                      child: Text('No assignments found.'),
+                    )
+                  : ListView.builder(
+                      itemCount: displayedAssignments.length,
+                      itemBuilder: (context, index) {
+                        final assignment =
+                            displayedAssignments[index];
 
-                      // Selection mode for deleting assignments.
-                      if (_isSelecting) {
+                        // Selection mode for deleting assignments.
+                        if (_isSelecting) {
+                          return CheckboxListTile(
+                            tileColor: Colors.white.withOpacity(0.45),
+                            title: Text(assignment.title),
+                            subtitle: Text(
+                              'Course: ${assignment.courseName}',
+                            ),
+                            value: _selectedAssignments
+                                .contains(assignment),
+                            onChanged: (_) {
+                              _toggleSelection(assignment);
+                            },
+                          );
+                        }
+
+                        // Normal assignment mode.
                         return CheckboxListTile(
-                          title: Text(assignment.title),
-                          subtitle: Text(
-                            'Course: ${assignment.courseName}',
+                          activeColor: Colors.red,
+
+                          // Background changes when completed.
+                          tileColor: assignment.isCompleted
+                              ? Colors.red.withOpacity(0.12)
+                              : Colors.white.withOpacity(0.45),
+
+                          // Red, crossed-out title when completed.
+                          title: Text(
+                            assignment.title,
+                            style: TextStyle(
+                              color: assignment.isCompleted
+                                  ? Colors.red
+                                  : Colors.black87,
+                              decoration: assignment.isCompleted
+                                  ? TextDecoration.lineThrough
+                                  : TextDecoration.none,
+                            ),
                           ),
-                          value: _selectedAssignments
-                              .contains(assignment),
-                          onChanged: (_) {
-                            _toggleSelection(assignment);
+
+                          // Course and due date.
+                          subtitle: Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Course: ${assignment.courseName}',
+                                style: TextStyle(
+                                  color: assignment.isCompleted
+                                      ? Colors.red
+                                      : Colors.black87,
+                                ),
+                              ),
+
+                              if (assignment.dueDate != null)
+                                Text(
+                                  'Due: '
+                                  '${assignment.dueDate!.day}/'
+                                  '${assignment.dueDate!.month}/'
+                                  '${assignment.dueDate!.year}',
+                                  style: TextStyle(
+                                    color: assignment.isCompleted
+                                        ? Colors.red
+                                        : Colors.black87,
+                                  ),
+                                )
+                              else
+                                Text(
+                                  'No due date',
+                                  style: TextStyle(
+                                    color: assignment.isCompleted
+                                        ? Colors.red
+                                        : Colors.black87,
+                                  ),
+                                ),
+                            ],
+                          ),
+
+                          // Current completion status.
+                          value: assignment.isCompleted,
+
+                          // Save completion changes to Firebase.
+                          onChanged: (_) async {
+                            final actualIndex = _presenter
+                                .assignments
+                                .indexOf(assignment);
+
+                            if (actualIndex == -1) return;
+
+                            try {
+                              await _presenter.toggleCompleted(
+                                actualIndex,
+                              );
+
+                              if (!mounted) return;
+
+                              setState(() {});
+                            } catch (e) {
+                              if (!mounted) return;
+
+                              ScaffoldMessenger.of(context)
+                                  .showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Failed to update assignment: $e',
+                                  ),
+                                ),
+                              );
+                            }
                           },
                         );
-                      }
-
-                      // Normal mode.
-                      return CheckboxListTile(
-                        activeColor: Colors.red,
-
-                        // Light red background when completed.
-                        tileColor: assignment.isCompleted
-                            ? Colors.red.withOpacity(0.08)
-                            : null,
-
-                        // Turn the title red and cross it out.
-                        title: Text(
-                          assignment.title,
-                          style: TextStyle(
-                            color: assignment.isCompleted
-                                ? Colors.red
-                                : null,
-                            decoration: assignment.isCompleted
-                                ? TextDecoration.lineThrough
-                                : TextDecoration.none,
-                          ),
-                        ),
-
-                        // Display the course and due date.
-                        subtitle: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Course: ${assignment.courseName}',
-                              style: TextStyle(
-                                color: assignment.isCompleted
-                                    ? Colors.red
-                                    : null,
-                              ),
-                            ),
-
-                            if (assignment.dueDate != null)
-                              Text(
-                                'Due: '
-                                '${assignment.dueDate!.day}/'
-                                '${assignment.dueDate!.month}/'
-                                '${assignment.dueDate!.year}',
-                                style: TextStyle(
-                                  color: assignment.isCompleted
-                                      ? Colors.red
-                                      : null,
-                                ),
-                              )
-                            else
-                              Text(
-                                'No due date',
-                                style: TextStyle(
-                                  color: assignment.isCompleted
-                                      ? Colors.red
-                                      : null,
-                                ),
-                              ),
-                          ],
-                        ),
-
-                        // Reflect the saved completion status.
-                        value: assignment.isCompleted,
-
-                        // Save completion changes to Firebase.
-                        onChanged: (_) async {
-                          final actualIndex = _presenter
-                              .assignments
-                              .indexOf(assignment);
-
-                          if (actualIndex == -1) return;
-
-                          try {
-                            await _presenter.toggleCompleted(
-                              actualIndex,
-                            );
-
-                            if (!mounted) return;
-
-                            setState(() {});
-                          } catch (e) {
-                            if (!mounted) return;
-
-                            ScaffoldMessenger.of(context)
-                                .showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Failed to update assignment: $e',
-                                ),
-                              ),
-                            );
-                          }
-                        },
-                      );
-                    },
-                  ),
-          ),
-        ],
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
-
-
+      
       // Use only one floating action button.
       floatingActionButton: _isSelecting
           ? null
